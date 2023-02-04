@@ -1,0 +1,53 @@
+version: '3.9'
+
+volumes:
+  pgdata:
+
+networks:
+  local_network:
+
+services:
+  backend:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - '7007:8000'
+    networks:
+      - local_network
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - postgredb
+
+
+  postgredb:
+    image: postgres:latest
+    environment:
+      - POSTGRES_DB=netology_stocks_products
+      - POSTGRES_USER=admin1
+      - POSTGRES_PASSWORD=admin1pwd
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin1 -d netology_stocks_products"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    volumes:
+      - ./logs:/var/log
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - local_network
+    expose:
+      - 5432
+    ports:
+      - '7008:5432'
+
+
+  nginx:
+    image: nginx
+    restart: unless-stopped
+    depends_on:
+    - backend
+    networks:
+      - local_network
